@@ -1,0 +1,8 @@
+*.pth
+checkpoints/*.pth
+wandb/
+__pycache__/
+*.pyc
+
+data/images/
+data/annotations/
