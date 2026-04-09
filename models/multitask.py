@@ -33,14 +33,17 @@ class MultiTaskPerceptionModel(nn.Module):
         # ─────────────────────────────────────────────────────────────────────
 
         # Instantiate individual models with their architectures
-        cls_model = VGG11(num_classes=num_breeds)
+        cls_model = VGG11(num_classes=num_breeds, dropout_p=0.5)
         loc_model = VGG11Localizer(in_channels=in_channels)
         seg_model = VGG11UNet(num_classes=seg_classes, in_channels=in_channels)
 
         # Load checkpoints if available
         if os.path.exists(classifier_path):
-            cls_model.load_state_dict(
-                torch.load(classifier_path, map_location="cpu"))
+            state = torch.load(classifier_path, map_location="cpu")
+            missing, unexpected = cls_model.load_state_dict(state, strict=False)
+
+            print("[DEBUG] Classifier missing keys:", missing)
+            print("[DEBUG] Classifier unexpected keys:", unexpected)
             print(f"[MultiTask] Loaded classifier from {classifier_path}")
         else:
             print(f"[MultiTask] WARNING: {classifier_path} not found — random weights.")
@@ -59,9 +62,9 @@ class MultiTaskPerceptionModel(nn.Module):
         else:
             print(f"[MultiTask] WARNING: {unet_path} not found — random weights.")
 
-        # ── Shared encoder (VGG11Encoder from classifier) ─────────────────────
         # VGG11 stores its encoder as self.features (a VGG11Encoder)
-        self.shared_encoder = cls_model.features          # VGG11Encoder
+        self.shared_encoder = VGG11().features
+        self.shared_encoder.load_state_dict(cls_model.features.state_dict())          # VGG11Encoder
 
         # ── Classification head ───────────────────────────────────────────────
         self.avgpool          = cls_model.avgpool          # AdaptiveAvgPool2d(7,7)
@@ -98,7 +101,7 @@ class MultiTaskPerceptionModel(nn.Module):
         # skip       : {f1:…, f2:…, f3:…, f4:…, f5:…}
 
         # ── Classification branch ─────────────────────────────────────────────
-        cls_x    = self.avgpool(bottleneck)           # [B, 512, 7, 7]
+        cls_x    = bottleneck           # [B, 512, 7, 7]
         cls_flat = torch.flatten(cls_x, 1)            # [B, 512*7*7]
         cls_out  = self.classifier_head(cls_flat)     # [B, num_breeds]
 
