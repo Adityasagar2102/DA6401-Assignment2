@@ -33,6 +33,22 @@ from models.segmentation import VGG11UNet
 from models.vgg11 import VGG11
 
 
+
+
+
+def soft_dice_loss(logits: torch.Tensor, targets: torch.Tensor, num_classes: int = 3, eps: float = 1e-6) -> torch.Tensor:
+    """Differentiable Dice Loss to directly optimize the Gradescope metric."""
+    probs = torch.softmax(logits, dim=1)
+    loss = 0.0
+    for c in range(num_classes):
+        p = probs[:, c, :, :]
+        t = (targets == c).float()
+        intersection = (p * t).sum(dim=(1, 2))
+        cardinality = p.sum(dim=(1, 2)) + t.sum(dim=(1, 2))
+        dice = (2.0 * intersection + eps) / (cardinality + eps)
+        loss += (1.0 - dice).mean()
+    return loss / num_classes
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #  Shared helpers
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -404,7 +420,7 @@ def train_localizer(args) -> None:
             p.requires_grad = False
         print("  Encoder FROZEN for first half of training.")
 
-    mse_loss  = nn.MSELoss()
+    mse_loss  = nn.SmoothL1Loss() # Much better for bounding box regression    
     iou_loss  = IoULoss(reduction="mean")
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
@@ -448,7 +464,8 @@ def train_localizer(args) -> None:
             pred   = model(imgs)
             m_loss = mse_loss(pred, bboxes)
             i_loss = iou_loss(pred, bboxes)
-            loss   = m_loss + i_loss
+            # Give IoU loss a higher weight so the model cares about perfect overlaps
+            loss   = m_loss + (2.0 * i_loss)
             loss.backward()
             optimizer.step()
 
@@ -532,7 +549,9 @@ def train_segmentation(args) -> None:
             p.requires_grad = False
         print("  Encoder FROZEN for first half of training.")
 
-    criterion = nn.CrossEntropyLoss()
+    # Class 0 (Pet): 2.0x weight, Class 1 (Bg): 1.0x weight, Class 2 (Boundary): 5.0x weight
+    class_weights = torch.tensor([2.0, 1.0, 5.0]).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights)    
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=args.lr, weight_decay=args.weight_decay,
@@ -571,7 +590,9 @@ def train_segmentation(args) -> None:
 
             optimizer.zero_grad()
             logits = model(imgs)
-            loss   = criterion(logits, masks)
+            ce_loss = criterion(logits, masks)
+            d_loss  = soft_dice_loss(logits, masks)
+            loss    = ce_loss + d_loss # Combine them!
             loss.backward()
             optimizer.step()
 

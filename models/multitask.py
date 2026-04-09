@@ -22,14 +22,9 @@ class MultiTaskPerceptionModel(nn.Module):
         super(MultiTaskPerceptionModel, self).__init__()
 
         # ── gdown downloads (paste your IDs here before submission) ──────────
-        if not os.path.exists(classifier_path):
-            gdown.download(id='13ziont0sFlPZrGPkCX2Hu6-WA05YJWSa', output=classifier_path, quiet=False)
-        
-        if not os.path.exists(localizer_path):
-            gdown.download(id='1PwIozGGqzkNooU1pFEc6BdtqlIB1xs-K', output=localizer_path, quiet=False)
-            
-        if not os.path.exists(unet_path):
-            gdown.download(id='1gmQjPB-fEjYAmNt5mSLafhis3a1EJhY0', output=unet_path, quiet=False)
+        gdown.download(id='1_31u4ALj-C-XkaYW_f4MEZrge0DETpfd', output=classifier_path, quiet=False)
+        gdown.download(id='19WYAvv3ya1uF9tKOgCI5zlKi5jv-ecM1', output=localizer_path, quiet=False)
+        gdown.download(id='1zKIBL7XkuBmqJJSNIii3D3cBwPTfIitR', output=unet_path, quiet=False)
         # ─────────────────────────────────────────────────────────────────────
 
         # Instantiate individual models with their architectures

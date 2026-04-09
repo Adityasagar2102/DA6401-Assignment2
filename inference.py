@@ -54,6 +54,7 @@ def load_model(
     unet_path:       str = "checkpoints/unet.pth",
     device: torch.device = None,
 ) -> MultiTaskPerceptionModel:
+
     """Instantiate and return MultiTaskPerceptionModel in eval mode."""
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
