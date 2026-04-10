@@ -54,10 +54,13 @@ class OxfordIIITPetDataset(Dataset):
         ]
         self.class_to_idx = {b: i for i, b in enumerate(self.classes)}
 
-        # ── Albumentations pipeline (hardcoded 224×224 per VGG11 paper) ───────
+        # ── Albumentations pipeline ───────────────────────────────────────────
         self.transform = A.Compose(
             [
                 A.Resize(224, 224),
+                A.HorizontalFlip(p=0.5), # Add flipping
+                A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=15, p=0.3), # Add slight rotations
+                A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.3), # Add lighting changes
                 A.Normalize(mean=(0.485, 0.456, 0.406),
                             std=(0.229, 0.224, 0.225)),
                 ToTensorV2(),
@@ -65,7 +68,7 @@ class OxfordIIITPetDataset(Dataset):
             bbox_params=A.BboxParams(
                 format="pascal_voc",
                 label_fields=["class_labels"],
-                min_visibility=0.1,   # drop boxes that become <10 % visible
+                min_visibility=0.1,
             ),
         )
 

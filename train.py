@@ -1,19 +1,3 @@
-"""Training entrypoint — DA6401 Assignment 2.
-
-Usage (run from project root):
-    python train.py --task all --data_dir data --epochs 30 --freeze_encoder
-    python train.py --task classify  --epochs 30
-    python train.py --task localize  --epochs 30 --freeze_encoder
-    python train.py --task segment   --epochs 30 --freeze_encoder
-    python train.py --task dropout_sweep --epochs 15   # for report section 2.2
-
-WandB report sections covered automatically:
-    2.1  Activation distributions (conv3) — logged after classifier training
-    2.2  Three dropout curves via dropout_sweep task
-    2.4  Feature maps from first & last conv layer
-    2.5  Detection table — 10 val images, GT+pred boxes, IoU score per box
-    2.6  Segmentation samples — 5 images: original / GT trimap / pred trimap
-"""
 
 import argparse
 import os
@@ -31,6 +15,10 @@ from losses.iou_loss import IoULoss
 from models.localization import VGG11Localizer
 from models.segmentation import VGG11UNet
 from models.vgg11 import VGG11
+
+import copy
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 
 
@@ -58,14 +46,27 @@ def _get_device() -> torch.device:
 
 
 def _make_loaders(args):
-    """80/20 train/val split, seed=42."""
-    dataset   = OxfordIIITPetDataset(root_dir=args.data_dir)
+    """80/20 train/val split, seed=42, with STRICTLY separated transforms."""
+    dataset = OxfordIIITPetDataset(root_dir=args.data_dir)
+    
     val_len   = int(len(dataset) * 0.2)
     train_len = len(dataset) - val_len
     train_ds, val_ds = random_split(
         dataset, [train_len, val_len],
         generator=torch.Generator().manual_seed(42),
     )
+    
+    # Create a clean copy of the dataset for validation (NO flipping or rotating)
+    val_dataset_clean = copy.deepcopy(dataset)
+    val_dataset_clean.transform = A.Compose([
+        A.Resize(224, 224),
+        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        ToTensorV2(),
+    ], bbox_params=A.BboxParams(format="pascal_voc", label_fields=["class_labels"]))
+    
+    # Re-assign the clean dataset to the validation subset
+    val_ds.dataset = val_dataset_clean
+
     kw = dict(num_workers=args.num_workers, pin_memory=True)
     return (
         DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,  **kw),
@@ -440,15 +441,15 @@ def train_localizer(args) -> None:
     unfreeze_done = False
 
     for epoch in range(args.epochs):
-        if args.freeze_encoder and not unfreeze_done and epoch >= args.epochs // 2:
-            for p in model.encoder.parameters():
-                p.requires_grad = True
-            optimizer = torch.optim.Adam(
-                model.parameters(), lr=args.lr * 0.1,
-                weight_decay=args.weight_decay,
-            )
-            unfreeze_done = True
-            print(f"  Epoch {epoch+1}: Encoder UNFROZEN (lr={args.lr*0.1:.2e})")
+        # if args.freeze_encoder and not unfreeze_done and epoch >= args.epochs // 2:
+        #     for p in model.encoder.parameters():
+        #         p.requires_grad = True
+        #     optimizer = torch.optim.Adam(
+        #         model.parameters(), lr=args.lr * 0.1,
+        #         weight_decay=args.weight_decay,
+        #     )
+        #     unfreeze_done = True
+        #     print(f"  Epoch {epoch+1}: Encoder UNFROZEN (lr={args.lr*0.1:.2e})")
 
         # ── Train ─────────────────────────────────────────────────────────────
         model.train()
@@ -465,7 +466,7 @@ def train_localizer(args) -> None:
             m_loss = mse_loss(pred, bboxes)
             i_loss = iou_loss(pred, bboxes)
             # Give IoU loss a higher weight so the model cares about perfect overlaps
-            loss   = m_loss + (2.0 * i_loss)
+            loss = (0.1 * m_loss) + (2.0 * i_loss)
             loss.backward()
             optimizer.step()
 
@@ -491,7 +492,7 @@ def train_localizer(args) -> None:
                 bs     = imgs.size(0)
                 v_mse += m_loss.item() * bs
                 v_iou += i_loss.item() * bs
-                v_tot += (m_loss + i_loss).item() * bs
+                v_tot += ((0.1 * m_loss) + (2.0 * i_loss)).item() * bs
                 vn    += bs
 
         v_mse /= vn; v_iou /= vn; v_tot /= vn
@@ -570,15 +571,15 @@ def train_segmentation(args) -> None:
     unfreeze_done = False
 
     for epoch in range(args.epochs):
-        if args.freeze_encoder and not unfreeze_done and epoch >= args.epochs // 2:
-            for p in model.encoder.parameters():
-                p.requires_grad = True
-            optimizer = torch.optim.Adam(
-                model.parameters(), lr=args.lr * 0.1,
-                weight_decay=args.weight_decay,
-            )
-            unfreeze_done = True
-            print(f"  Epoch {epoch+1}: Encoder UNFROZEN (lr={args.lr*0.1:.2e})")
+        # if args.freeze_encoder and not unfreeze_done and epoch >= args.epochs // 2:
+        #     for p in model.encoder.parameters():
+        #         p.requires_grad = True
+        #     optimizer = torch.optim.Adam(
+        #         model.parameters(), lr=args.lr * 0.1,
+        #         weight_decay=args.weight_decay,
+        #     )
+        #     unfreeze_done = True
+        #     print(f"  Epoch {epoch+1}: Encoder UNFROZEN (lr={args.lr*0.1:.2e})")
 
         # ── Train ─────────────────────────────────────────────────────────────
         model.train()

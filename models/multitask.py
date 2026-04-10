@@ -22,9 +22,9 @@ class MultiTaskPerceptionModel(nn.Module):
         super(MultiTaskPerceptionModel, self).__init__()
 
         # ── gdown downloads (paste your IDs here before submission) ──────────
-        gdown.download(id='1_31u4ALj-C-XkaYW_f4MEZrge0DETpfd', output=classifier_path, quiet=False)
-        gdown.download(id='19WYAvv3ya1uF9tKOgCI5zlKi5jv-ecM1', output=localizer_path, quiet=False)
-        gdown.download(id='1zKIBL7XkuBmqJJSNIii3D3cBwPTfIitR', output=unet_path, quiet=False)
+        gdown.download(id='1KV1HbLOXam9qQ854l-CgWtRt1FcWxvLi', output=classifier_path, quiet=False)
+        gdown.download(id='1zzWXGFcHwFxwRv87_3dhV_CGooKCfGtv', output=localizer_path, quiet=False)
+        gdown.download(id='1FeI1_GPGCkv2msnkLGnW0OFkR50Y3eIA', output=unet_path, quiet=False)
         # ─────────────────────────────────────────────────────────────────────
 
         # Instantiate individual models with their architectures
@@ -96,7 +96,7 @@ class MultiTaskPerceptionModel(nn.Module):
         # skip       : {f1:…, f2:…, f3:…, f4:…, f5:…}
 
         # ── Classification branch ─────────────────────────────────────────────
-        cls_x    = bottleneck           # [B, 512, 7, 7]
+        cls_x    = self.avgpool(bottleneck)           # [B, 512, 7, 7]
         cls_flat = torch.flatten(cls_x, 1)            # [B, 512*7*7]
         cls_out  = self.classifier_head(cls_flat)     # [B, num_breeds]
 
