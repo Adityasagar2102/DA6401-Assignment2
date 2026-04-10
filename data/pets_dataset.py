@@ -58,9 +58,7 @@ class OxfordIIITPetDataset(Dataset):
         self.transform = A.Compose(
             [
                 A.Resize(224, 224),
-                A.HorizontalFlip(p=0.5), # Add flipping
-                A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=15, p=0.3), # Add slight rotations
-                A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.3), # Add lighting changes
+                A.HorizontalFlip(p=0.5), # KEEP ONLY THIS
                 A.Normalize(mean=(0.485, 0.456, 0.406),
                             std=(0.229, 0.224, 0.225)),
                 ToTensorV2(),
