@@ -1,9 +1,3 @@
-"""Inference utilities — DA6401 Assignment 2.
-
-Run from project root:
-    python inference.py --image path/to/cat.jpg --save output.jpg
-"""
-
 import argparse
 import os
 
@@ -25,7 +19,6 @@ _TRANSFORM = A.Compose([
 ])
 
 # Oxford-IIIT Pet breeds — alphabetically sorted to match dataset.class_to_idx
-# (These are inferred from the dataset; verify with your actual dataset.classes)
 BREEDS = [
     "Abyssinian", "Bengal", "Birman", "Bombay", "British_Shorthair",
     "Egyptian_Mau", "Maine_Coon", "Persian", "Ragdoll", "Russian_Blue",
@@ -135,18 +128,9 @@ def visualize(
     save_path: str = None,
     alpha: float = 0.45,
 ) -> np.ndarray:
-    """
-    Overlay bounding box and segmentation mask on the original image.
 
-    Args:
-        image_path : path to original image
-        result     : dict returned by run_inference()
-        save_path  : if given, write the output image here
-        alpha      : mask overlay transparency (0=no mask, 1=opaque)
 
-    Returns:
-        Annotated image as [H, W, 3] RGB numpy array.
-    """
+
     img = cv2.imread(image_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).copy()
     orig_h, orig_w = img.shape[:2]

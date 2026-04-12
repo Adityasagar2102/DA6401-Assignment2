@@ -84,12 +84,6 @@ class MultiTaskPerceptionModel(nn.Module):
 
     # ------------------------------------------------------------------
     def forward(self, x: torch.Tensor):
-        """
-        Args:
-            x: [B, 3, 224, 224] normalized input image
-        Returns:
-            dict with keys 'classification', 'localization', 'segmentation'
-        """
         # ── Shared encoder (run ONCE) ─────────────────────────────────────────
         bottleneck, skip = self.shared_encoder(x, return_features=True)
         # bottleneck : [B, 512, 7, 7]

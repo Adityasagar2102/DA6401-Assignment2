@@ -21,7 +21,7 @@ from albumentations.pytorch import ToTensorV2
 
 
 def soft_dice_loss(logits: torch.Tensor, targets: torch.Tensor, num_classes: int = 3, eps: float = 1e-6) -> torch.Tensor:
-    """Differentiable Dice Loss to directly optimise the Gradescope metric."""
+
     probs = torch.softmax(logits, dim=1)
     loss = 0.0
     for c in range(num_classes):
@@ -71,15 +71,7 @@ def _make_loaders(args):
     )
 
 
-# ── FIX #1: Correct pretrained weight loading ─────────────────────────────────
 def _load_pretrained_vgg11bn(model: VGG11) -> bool:
-    """
-    Load ImageNet-pretrained VGG11-BN weights into our custom VGG11Encoder.
-
-    Torchvision's VGG11-BN features is a FLAT nn.Sequential with integer keys
-    (0, 1, 4, 5, 8 …).  Our VGG11Encoder has NAMED blocks (block1, block2 …).
-    A direct load_state_dict() always fails — we must rename the keys manually.
-    """
     try:
         import torchvision.models as tv
 
@@ -327,9 +319,7 @@ def train_classifier(args, run_name: str = "classifier") -> None:
 
     model = VGG11(num_classes=37, dropout_p=args.dropout_p).to(device)
 
-    # ── FIX #1: load ImageNet pretrained weights with correct key mapping ──────
     _load_pretrained_vgg11bn(model)
-    # ─────────────────────────────────────────────────────────────────────────
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
@@ -437,11 +427,6 @@ def train_localizer(args) -> None:
         dst_prefix="encoder.",
     )
 
-    # ── FIX #2: ALWAYS freeze the encoder ────────────────────────────────────
-    # The regressor must learn to map FROM the exact same feature distribution
-    # that the classifier encoder produces.  If the localizer encoder drifts,
-    # multitask.py (which uses the classifier encoder for all three heads) will
-    # feed the regressor completely unexpected activations → garbage bboxes.
     for p in model.encoder.parameters():
         p.requires_grad = False
     print("  Encoder FROZEN — only regressor head will be trained.")
@@ -453,13 +438,8 @@ def train_localizer(args) -> None:
     )
     # ─────────────────────────────────────────────────────────────────────────
 
-    # ── FIX #3: balanced loss — normalise coords before MSE ──────────────────
-    # SmoothL1 on raw pixel coords (range 0–224) produces losses ~10–50×
-    # larger than IoU loss (range 0–1).  We normalise predictions and targets
-    # to [0,1] for the regression term so both losses are on the same scale.
     smooth_l1  = nn.SmoothL1Loss()
     iou_loss   = IoULoss(reduction="mean")
-    # ─────────────────────────────────────────────────────────────────────────
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=args.epochs)

@@ -1,14 +1,10 @@
-"""Classification components."""
-
 import torch
 import torch.nn as nn
 
 from .vgg11 import VGG11Encoder
-from .layers import CustomDropout          # ← required; nn.Dropout is forbidden
-
+from .layers import CustomDropout          
 
 class VGG11Classifier(nn.Module):
-    """Full classifier = VGG11Encoder + Classification head."""
 
     def __init__(self, num_classes: int = 37, in_channels: int = 3,
                  dropout_p: float = 0.5):
@@ -17,8 +13,7 @@ class VGG11Classifier(nn.Module):
         self.encoder = VGG11Encoder(in_channels=in_channels)
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
 
-        # NOTE: nn.Dropout is strictly forbidden by the assignment.
-        #       We use CustomDropout everywhere instead.
+        # I am using CustomDropout.
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(512 * 7 * 7, 4096),

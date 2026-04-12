@@ -1,5 +1,3 @@
-"""Oxford-IIIT Pet multi-task dataset loader."""
-
 import os
 import cv2
 import numpy as np
@@ -11,15 +9,6 @@ from albumentations.pytorch import ToTensorV2
 
 
 class OxfordIIITPetDataset(Dataset):
-    """
-    Oxford-IIIT Pet multi-task dataset.
-
-    Returns per sample:
-        image : FloatTensor [3, 224, 224]  — normalised
-        label : LongTensor  scalar         — breed index in [0, 36]
-        bbox  : FloatTensor [4]            — [x_center, y_center, w, h] pixel coords
-        mask  : LongTensor  [224, 224]     — trimap class in {0, 1, 2}
-    """
 
     def __init__(self, root_dir: str, split: str = "train"):
         self.root_dir   = root_dir

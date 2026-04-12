@@ -17,21 +17,6 @@ def _dec_block(in_ch: int, out_ch: int) -> nn.Sequential:
 
 
 class VGG11UNet(nn.Module):
-    """
-    U-Net style segmentation model using VGG11 as the contracting path (encoder).
-
-    Encoder (VGG11Encoder) feature map sizes for a 224x224 input:
-        f1 : [B,  64, 224, 224]  — after block1, before pool1
-        f2 : [B, 128, 112, 112]  — after block2, before pool2
-        f3 : [B, 256,  56,  56]  — after block3, before pool3
-        f4 : [B, 512,  28,  28]  — after block4, before pool4
-        f5 : [B, 512,  14,  14]  — after block5, before pool5
-        bottleneck: [B, 512,   7,   7]  — after pool5
-
-    Decoder mirrors the encoder with ConvTranspose2d upsampling and
-    skip-connection concatenation at every stage.
-    """
-
     def __init__(self, num_classes: int = 3, in_channels: int = 3):
         super(VGG11UNet, self).__init__()
 

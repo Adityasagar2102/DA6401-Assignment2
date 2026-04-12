@@ -6,7 +6,6 @@ import torch.nn as nn
 from .layers import CustomDropout
 
 class VGG11Encoder(nn.Module):
-    """VGG11-style encoder with optional intermediate feature returns."""
 
     def __init__(self, in_channels: int = 3):
         super(VGG11Encoder, self).__init__()
@@ -63,16 +62,8 @@ class VGG11Encoder(nn.Module):
     def forward(
         self, x: torch.Tensor, return_features: bool = False
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, torch.Tensor]]]:
-        """Forward pass.
 
-        Args:
-            x: input image tensor [B, 3, H, W].
-            return_features: if True, also return skip maps for U-Net decoder.
-
-        Returns:
-            - if return_features=False: bottleneck feature tensor.
-            - if return_features=True: (bottleneck, feature_dict).
-        """
+    
         # pass through block 1 and save the feature map before pooling 
         f1 = self.block1(x)
         x = self.pool1(f1)
